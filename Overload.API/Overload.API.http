@@ -1,0 +1,112 @@
+@Overload.API_HostAddress = http://localhost:5200
+
+# 1. Register a new user (Public)
+POST {{Overload.API_HostAddress}}/api/auth/register
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "password": "securepassword123",
+  "fullName": "Alice Student"
+}
+
+###
+
+# 2. Login to get JWT Token (Public)
+# Copy the returned "token" value and paste it into the @authToken variable below
+POST {{Overload.API_HostAddress}}/api/auth/login
+Content-Type: application/json
+
+{
+  "email": "student@example.com",
+  "password": "securepassword123"
+}
+
+###
+
+@authToken = PASTE_TOKEN_HERE
+
+# 3. Get All Courses (Public)
+GET {{Overload.API_HostAddress}}/api/courses
+Accept: application/json
+
+###
+
+# 4. Get Course Details (Public)
+GET {{Overload.API_HostAddress}}/api/courses/6c46c97f-c190-4822-b1e5-3a7f135b293c
+Accept: application/json
+
+###
+
+# 5. Enroll in Course (Authorized)
+POST {{Overload.API_HostAddress}}/api/enrollments/enroll/6c46c97f-c190-4822-b1e5-3a7f135b293c
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+# 6. List Lessons (Authorized)
+GET {{Overload.API_HostAddress}}/api/courses/6c46c97f-c190-4822-b1e5-3a7f135b293c/lessons
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+# 7. Get Lesson Content (Authorized - checks enrollment)
+GET {{Overload.API_HostAddress}}/api/lessons/7c46c97f-c190-4822-b1e5-3a7f135b293d
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+# 8. Check Continue Learning (Authorized - should return Lesson 1)
+GET {{Overload.API_HostAddress}}/api/progress/continue-learning
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+# 9. Update Scroll Progress - 72.5% (Authorized)
+POST {{Overload.API_HostAddress}}/api/progress/update-scroll
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "lessonId": "7c46c97f-c190-4822-b1e5-3a7f135b293d",
+  "scrollPercentage": 72.5,
+  "checkpointIndex": 5
+}
+
+###
+
+# 10. Check Continue Learning again (Authorized - should show 72.5% progress details)
+GET {{Overload.API_HostAddress}}/api/progress/continue-learning
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+# 11. Complete Lesson - 100% (Authorized)
+POST {{Overload.API_HostAddress}}/api/progress/update-scroll
+Authorization: Bearer {{authToken}}
+Content-Type: application/json
+
+{
+  "lessonId": "7c46c97f-c190-4822-b1e5-3a7f135b293d",
+  "scrollPercentage": 100,
+  "checkpointIndex": 8
+}
+
+###
+
+# 12. Check My Enrollments (Authorized - should show ProgressPercentage = 100%)
+GET {{Overload.API_HostAddress}}/api/enrollments/my-enrollments
+Authorization: Bearer {{authToken}}
+Accept: application/json
+
+###
+
+# 13. Check Continue Learning after completion (Authorized - should say no active lesson if all completed)
+GET {{Overload.API_HostAddress}}/api/progress/continue-learning
+Authorization: Bearer {{authToken}}
+Accept: application/json

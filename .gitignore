@@ -1,0 +1,23 @@
+# Build and output directories
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+x64/
+x86/
+
+# Visual Studio files
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# Operating System files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Rider / JetBrains
+.idea/
+*.sln.iml

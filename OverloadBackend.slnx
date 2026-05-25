@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Overload.API/Overload.API.csproj" />
+  <Project Path="Overload.BusinessLogic/Overload.BusinessLogic.csproj" />
+  <Project Path="Overload.DataAccessLayer/Overload.DataAccessLayer.csproj" />
+</Solution>
