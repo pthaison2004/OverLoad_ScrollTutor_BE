@@ -13,6 +13,9 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddControllers();
 
+// Register In-Memory Cache
+builder.Services.AddMemoryCache();
+
 // Configure EF Core with SQL Server
 builder.Services.AddDbContext<OverloadDbContext>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
