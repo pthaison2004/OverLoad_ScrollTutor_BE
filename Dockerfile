@@ -2,15 +2,20 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Copy solution và tất cả csproj
+# Copy solution file
 COPY *.sln .
+
+# Copy tất cả csproj files
 COPY */*.csproj ./
 RUN for file in $(ls *.csproj); do mkdir -p ${file%.*}/ && cp $file ${file%.*}/; done
 
+# Copy toàn bộ source code
 COPY . .
 
-# Restore và Publish project chính
-RUN dotnet restore
+# Restore sử dụng solution file
+RUN dotnet restore OverLoad.sln
+
+# Publish project chính
 RUN dotnet publish OverLoad.API/OverLoad.API.csproj -c Release -o /app/publish /p:UseAppHost=false
 
 # Runtime stage
