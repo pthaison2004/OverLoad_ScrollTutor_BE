@@ -39,6 +39,12 @@ var jwtKey = builder.Configuration["Jwt:SecretKey"]
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "OverLoadAPI";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "OverLoadClient";
 
+// HttpClient cho Gemini
+builder.Services.AddHttpClient<IChatService, GeminiChatService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(30);
+});
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
