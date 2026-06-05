@@ -49,4 +49,11 @@ public class EnrollmentRepository : BaseRepository<Enrollment>, IEnrollmentRepos
         var items = await query.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
         return (items, total);
     }
+    public async Task<IEnumerable<Enrollment>> GetByUserIdWithDetailsAsync(int userId)
+    => await _dbSet
+        .Include(e => e.Course)
+            .ThenInclude(c => c.Lessons)
+        .Where(e => e.UserId == userId)
+        .OrderByDescending(e => e.LastAccessedAt)
+        .ToListAsync();
 }

@@ -11,11 +11,16 @@ public class LessonService : ILessonService
 {
     private readonly ILessonRepository _lessonRepository;
     private readonly ICourseRepository _courseRepository;
+    private readonly IUserLessonProgressRepository _progressRepository;
 
-    public LessonService(ILessonRepository lessonRepository, ICourseRepository courseRepository)
+    public LessonService(
+        ILessonRepository lessonRepository,
+        ICourseRepository courseRepository,
+        IUserLessonProgressRepository progressRepository)
     {
         _lessonRepository = lessonRepository;
         _courseRepository = courseRepository;
+        _progressRepository = progressRepository;
     }
 
     public async Task<ApiResponse<LessonResponse>> GetByIdAsync(int id)
@@ -135,7 +140,58 @@ public class LessonService : ILessonService
 
         return ApiResponse<bool>.SuccessResult(true, "Lesson deleted successfully.");
     }
+    public async Task<ApiResponse<List<LessonProgressResponse>>> GetByCourseIdWithProgressAsync(int courseId, int? userId)
+    {
+        if (!await _courseRepository.ExistsAsync(courseId))
+            return ApiResponse<List<LessonProgressResponse>>.FailResult("Course not found.");
 
+        var lessons = await _lessonRepository.GetByCourseIdAsync(courseId);
+        var lessonList = lessons.OrderBy(l => l.OrderIndex).ToList();
+
+        // Lấy progress nếu user đã đăng nhập
+        List<UserLessonProgress> progressList = new();
+        if (userId.HasValue)
+        {
+            var allProgress = await _progressRepository.GetByUserIdAsync(userId.Value);
+            progressList = allProgress
+                .Where(p => lessonList.Select(l => l.Id).Contains(p.LessonId))
+                .ToList();
+        }
+
+        var result = lessonList.Select(lesson =>
+        {
+            var progress = progressList.FirstOrDefault(p => p.LessonId == lesson.Id);
+
+            // Lesson bị lock nếu không free và chưa đăng nhập
+            // hoặc lesson trước chưa completed (trừ lesson đầu tiên và lesson free)
+            var previousLesson = lessonList.FirstOrDefault(l => l.OrderIndex == lesson.OrderIndex - 1);
+            var previousCompleted = previousLesson == null
+                || progressList.Any(p => p.LessonId == previousLesson.Id && p.Completed);
+
+            var isLocked = !lesson.IsFree && (!userId.HasValue || !previousCompleted);
+
+            var watchPercentage = progress != null && lesson.DurationMinutes > 0
+                ? Math.Clamp(
+                    Math.Round((decimal)progress.LastPositionSeconds / (lesson.DurationMinutes * 60) * 100, 1),
+                    0, 100)
+                : 0;
+
+            return new LessonProgressResponse
+            {
+                Id = lesson.Id,
+                Title = lesson.Title,
+                DurationMinutes = lesson.DurationMinutes,
+                OrderIndex = lesson.OrderIndex,
+                IsFree = lesson.IsFree,
+                Completed = progress?.Completed ?? false,
+                WatchPercentage = watchPercentage,
+                LastPositionSeconds = progress?.LastPositionSeconds ?? 0,
+                IsLocked = isLocked
+            };
+        }).ToList();
+
+        return ApiResponse<List<LessonProgressResponse>>.SuccessResult(result);
+    }
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private async Task SyncCourseTotalsAsync(Course course, int courseId)

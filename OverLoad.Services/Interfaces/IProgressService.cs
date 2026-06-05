@@ -16,4 +16,5 @@ public interface IProgressService
     Task<ApiResponse<ProgressResponse>> UpdateAsync(int id, UpdateProgressRequest request);
     Task<ApiResponse<ProgressResponse>> UpsertAsync(CreateProgressRequest request);
     Task<ApiResponse<bool>> DeleteAsync(int id);
+    Task<ApiResponse<ProgressResponse>> CompleteLessonAsync(int userId, int lessonId, CompleteLessonRequest request);
 }

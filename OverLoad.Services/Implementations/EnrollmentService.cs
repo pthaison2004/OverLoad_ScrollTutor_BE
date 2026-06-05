@@ -12,15 +12,17 @@ public class EnrollmentService : IEnrollmentService
     private readonly IEnrollmentRepository _enrollmentRepository;
     private readonly IUserRepository _userRepository;
     private readonly ICourseRepository _courseRepository;
-
+    private readonly IUserLessonProgressRepository _progressRepository;
     public EnrollmentService(
-        IEnrollmentRepository enrollmentRepository,
-        IUserRepository userRepository,
-        ICourseRepository courseRepository)
+    IEnrollmentRepository enrollmentRepository,
+    IUserRepository userRepository,
+    ICourseRepository courseRepository,
+    IUserLessonProgressRepository progressRepository)
     {
         _enrollmentRepository = enrollmentRepository;
         _userRepository = userRepository;
         _courseRepository = courseRepository;
+        _progressRepository = progressRepository;
     }
 
     public async Task<ApiResponse<EnrollmentResponse>> GetByIdAsync(int id)
@@ -128,7 +130,74 @@ public class EnrollmentService : IEnrollmentService
         await _enrollmentRepository.DeleteAsync(id);
         return ApiResponse<bool>.SuccessResult(true, "Unenrolled successfully.");
     }
+    public async Task<ApiResponse<List<MyCourseResponse>>> GetMyCoursesAsync(int userId)
+    {
+        if (!await _userRepository.ExistsAsync(userId))
+            return ApiResponse<List<MyCourseResponse>>.FailResult("User not found.");
 
+        var enrollments = await _enrollmentRepository.GetByUserIdWithDetailsAsync(userId);
+
+        var result = enrollments.Select(e =>
+        {
+            var totalLessons = e.Course?.Lessons?.Count ?? 0;
+            var completedLessons = totalLessons > 0
+                                    ? (int)Math.Round(totalLessons * (double)e.ProgressPercentage / 100)
+                                    : 0;
+
+            return new MyCourseResponse
+            {
+                CourseId = e.CourseId,
+                Title = e.Course?.Title ?? string.Empty,
+                ThumbnailUrl = e.Course?.ThumbnailUrl,
+                Category = e.Course?.Category,
+                Level = e.Course?.Level.ToString() ?? string.Empty,
+                Price = e.Course?.Price ?? 0,
+                ProgressPercentage = e.ProgressPercentage,
+                CompletedLessons = completedLessons,
+                TotalLessons = totalLessons,
+                EnrolledAt = e.EnrolledAt,
+                LastAccessedAt = e.LastAccessedAt,
+                CompletedAt = e.CompletedAt,
+                IsCompleted = e.CompletedAt.HasValue
+            };
+        }).ToList();
+
+        return ApiResponse<List<MyCourseResponse>>.SuccessResult(result);
+    }
+    public async Task<ApiResponse<CourseProgressResponse>> GetCourseProgressAsync(int userId, int courseId)
+    {
+        var enrollment = await _enrollmentRepository.GetByUserAndCourseAsync(userId, courseId);
+        if (enrollment == null)
+            return ApiResponse<CourseProgressResponse>.FailResult($"Enrollment not found. UserId={userId}, CourseId={courseId}");
+
+        var course = await _courseRepository.GetWithLessonsAsync(courseId);
+        if (course == null)
+            return ApiResponse<CourseProgressResponse>.FailResult($"Course not found. CourseId={courseId}");
+
+        var lessonIds = course.Lessons.Select(l => l.Id).ToList();
+        if (!lessonIds.Any())
+            return ApiResponse<CourseProgressResponse>.FailResult($"Course has no lessons. CourseId={courseId}, TotalLessons={course.TotalLessons}");
+
+        var allProgress = await _progressRepository.GetByUserIdAsync(userId);
+        var courseProgress = allProgress
+            .Where(p => lessonIds.Contains(p.LessonId))
+            .ToList();
+
+        
+  
+        var totalLessons = course.Lessons.Count;
+        var completedLessons = courseProgress.Count(p => p.Completed);
+        return ApiResponse<CourseProgressResponse>.SuccessResult(new CourseProgressResponse
+        {
+            CourseId = courseId,
+            CourseTitle = course.Title,
+            ProgressPercentage = enrollment.ProgressPercentage,
+            CompletedLessons = completedLessons,
+            TotalLessons = totalLessons,
+            LastAccessedAt = enrollment.LastAccessedAt,
+            IsCompleted = enrollment.CompletedAt.HasValue
+        });
+    }
     // ── Helpers ──────────────────────────────────────────────────────────────
 
     private static EnrollmentResponse MapToResponse(Enrollment e) => new()

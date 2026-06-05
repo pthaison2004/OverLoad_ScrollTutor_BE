@@ -13,4 +13,6 @@ public interface IEnrollmentService
     Task<ApiResponse<EnrollmentResponse>> EnrollAsync(CreateEnrollmentRequest request);
     Task<ApiResponse<EnrollmentResponse>> UpdateProgressAsync(int id, UpdateEnrollmentRequest request);
     Task<ApiResponse<bool>> UnenrollAsync(int id);
+    Task<ApiResponse<List<MyCourseResponse>>> GetMyCoursesAsync(int userId);
+    Task<ApiResponse<CourseProgressResponse>> GetCourseProgressAsync(int userId, int courseId);
 }

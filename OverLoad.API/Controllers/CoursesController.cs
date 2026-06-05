@@ -1,5 +1,7 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OverLoad.Services.DTOs.Request;
+using OverLoad.Services.Implementations;
 using OverLoad.Services.Interfaces;
 
 namespace OverLoad.API.Controllers;
@@ -12,11 +14,16 @@ public class CoursesController : ControllerBase
 {
     private readonly ICourseService _courseService;
     private readonly ILessonService _lessonService;
+    private readonly IEnrollmentService _enrollmentService;
 
-    public CoursesController(ICourseService courseService, ILessonService lessonService)
+    public CoursesController(
+    ICourseService courseService,
+    ILessonService lessonService,
+    IEnrollmentService enrollmentService)
     {
         _courseService = courseService;
         _lessonService = lessonService;
+        _enrollmentService = enrollmentService;
     }
 
     /// <summary>Get a paginated list of courses with filtering and sorting.</summary>
@@ -47,13 +54,20 @@ public class CoursesController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>Get all lessons for a specific course (ordered).</summary>
+    /// <summary>Get all lessons of a course with progress if authenticated.</summary>
     [HttpGet("{id:int}/lessons")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetLessons(int id)
     {
-        var result = await _lessonService.GetByCourseIdAsync(id);
+        int? userId = null;
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                       ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+
+        if (userIdClaim != null && int.TryParse(userIdClaim.Value, out var parsedId))
+            userId = parsedId;
+
+        var result = await _lessonService.GetByCourseIdWithProgressAsync(id, userId);
         if (!result.Success) return NotFound(result);
         return Ok(result);
     }
@@ -106,6 +120,23 @@ public class CoursesController : ControllerBase
         [FromQuery] int pageSize = 10)
     {
         var result = await _courseService.GetByCategoryAsync(category, page, pageSize);
+        return Ok(result);
+    }
+    [HttpGet("{courseId:int}/progress")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetCourseProgress(int courseId)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                       ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized(new { success = false, message = "Invalid token." });
+
+        var result = await _enrollmentService.GetCourseProgressAsync(userId, courseId);
+        if (!result.Success) return NotFound(result);
         return Ok(result);
     }
 }

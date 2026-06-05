@@ -1,5 +1,6 @@
 ﻿// OverLoad.Services/Implementations/ProgressService.cs
 using OverLoad.Domain.Entities;
+using OverLoad.Repositories.Implementations;
 using OverLoad.Repositories.Interfaces;
 using OverLoad.Services.Common;
 using OverLoad.Services.DTOs.Request;
@@ -13,15 +14,18 @@ public class ProgressService : IProgressService
     private readonly IUserLessonProgressRepository _progressRepository;
     private readonly IUserRepository _userRepository;
     private readonly ILessonRepository _lessonRepository;
+    private readonly IEnrollmentRepository _enrollmentRepository;
 
     public ProgressService(
         IUserLessonProgressRepository progressRepository,
         IUserRepository userRepository,
-        ILessonRepository lessonRepository)
+        ILessonRepository lessonRepository,
+        IEnrollmentRepository enrollmentRepository)
     {
         _progressRepository = progressRepository;
         _userRepository = userRepository;
         _lessonRepository = lessonRepository;
+        _enrollmentRepository = enrollmentRepository;
     }
 
     public async Task<ApiResponse<ProgressResponse>> GetByIdAsync(int id)
@@ -192,7 +196,72 @@ public class ProgressService : IProgressService
         await _progressRepository.DeleteAsync(id);
         return ApiResponse<bool>.SuccessResult(true, "Progress deleted successfully.");
     }
+    public async Task<ApiResponse<ProgressResponse>> CompleteLessonAsync(int userId, int lessonId, CompleteLessonRequest request)
+    {
+        var lesson = await _lessonRepository.GetWithCourseAsync(lessonId);
+        if (lesson == null)
+            return ApiResponse<ProgressResponse>.FailResult("Lesson not found.");
 
+        if (!await _userRepository.ExistsAsync(userId))
+            return ApiResponse<ProgressResponse>.FailResult("User not found.");
+
+        // Upsert progress
+        var existing = await _progressRepository.GetByUserAndLessonAsync(userId, lessonId);
+
+        if (existing != null)
+        {
+            if (!existing.Completed)
+            {
+                existing.Completed = true;
+                existing.CompletedAt = DateTime.UtcNow;
+                await _progressRepository.UpdateAsync(existing);
+            }
+
+            // Cập nhật enrollment progress
+            await UpdateEnrollmentProgressAsync(userId, lesson.CourseId, request.CourseProgress);
+
+            var updated = await _progressRepository.GetByUserAndLessonAsync(userId, lessonId);
+            return ApiResponse<ProgressResponse>.SuccessResult(
+                MapToResponse(updated!), "Lesson marked as completed.");
+        }
+
+        // Tạo mới nếu chưa có progress record
+        var progress = new UserLessonProgress
+        {
+            UserId = userId,
+            LessonId = lessonId,
+            Completed = true,
+            CompletedAt = DateTime.UtcNow,
+            LastScrollPercentage = 100,
+            UnlockedCheckpointIndex = 0,
+            LastPositionSeconds = 0,
+            WatchTimeSeconds = 0
+        };
+
+        await _progressRepository.AddAsync(progress);
+
+        // Cập nhật enrollment progress
+        await UpdateEnrollmentProgressAsync(userId, lesson.CourseId, request.CourseProgress);
+
+        var created = await _progressRepository.GetByUserAndLessonAsync(userId, lessonId);
+        return ApiResponse<ProgressResponse>.SuccessResult(
+            MapToResponse(created!), "Lesson marked as completed.");
+    }
+
+    private async Task UpdateEnrollmentProgressAsync(int userId, int courseId, decimal progressPercentage)
+    {
+        var enrollment = await _enrollmentRepository.GetByUserAndCourseAsync(userId, courseId);
+        if (enrollment == null) return;
+
+        var safeProgress = Math.Clamp(progressPercentage, 0, 100);
+        enrollment.ProgressPercentage = safeProgress;
+        enrollment.LastAccessedAt = DateTime.UtcNow;
+
+        if (safeProgress >= 100 && enrollment.CompletedAt == null)
+            enrollment.CompletedAt = DateTime.UtcNow;
+
+        await _enrollmentRepository.UpdateAsync(enrollment);
+    }
     // ── Mapping ───────────────────────────────────────────────────────────────
 
     private static ProgressResponse MapToResponse(UserLessonProgress p) => new()

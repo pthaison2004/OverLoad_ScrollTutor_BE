@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OverLoad.Services.DTOs.Request;
 using OverLoad.Services.Interfaces;
@@ -11,8 +12,13 @@ namespace OverLoad.API.Controllers;
 public class LessonsController : ControllerBase
 {
     private readonly ILessonService _lessonService;
+    private readonly IProgressService _progressService;
 
-    public LessonsController(ILessonService lessonService) => _lessonService = lessonService;
+    public LessonsController(ILessonService lessonService, IProgressService progressService)
+    {
+        _lessonService = lessonService;
+        _progressService = progressService;
+    }
 
     /// <summary>Get a paginated list of lessons with optional filtering by course.</summary>
     [HttpGet]
@@ -69,6 +75,25 @@ public class LessonsController : ControllerBase
     {
         var result = await _lessonService.DeleteAsync(id);
         if (!result.Success) return NotFound(result);
+        return Ok(result);
+    }
+    /// <summary>Mark a lesson as completed for the authenticated user.</summary>
+    [HttpPost("{lessonId:int}/complete")]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> CompleteLesson(int lessonId, [FromBody] CompleteLessonRequest request)
+    {
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)
+                       ?? User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub);
+
+        if (userIdClaim == null || !int.TryParse(userIdClaim.Value, out var userId))
+            return Unauthorized(new { success = false, message = "Invalid token." });
+
+        var result = await _progressService.CompleteLessonAsync(userId, lessonId, request);
+        if (!result.Success)
+            return result.Message.Contains("not found") ? NotFound(result) : BadRequest(result);
         return Ok(result);
     }
 }
