@@ -22,18 +22,18 @@ INSERT INTO Users
 VALUES
 (
     'admin@overload.io',
-    'aGFzaGVkX0FkbWluQDEyMw==',
+    '$2a$11$dpDO4yuIv5Y/yDChDhf9cOl5J/0rsaCnsEX7HRaeGIKa6xZnl1M7K',
     'System Admin',
     'https://api.dicebear.com/7.x/initials/svg?seed=SA',
     'Platform administrator.',
-    0,
+    2,
     1,
     GETUTCDATE(),
     GETUTCDATE()
 ),
 (
     'john.instructor@overload.io',
-    'aGFzaGVkX0luc3RydWN0b3JAMTIz',
+    '$2a$11$U9tsNWJJMwn8gTOE.jjm4uUjl1LnvOTzC6hjqN4jf2YprbT3RP1Q6',
     'John Carter',
     'https://api.dicebear.com/7.x/initials/svg?seed=JC',
     'Senior software engineer with 10+ years of experience in .NET and cloud architecture.',
@@ -44,7 +44,7 @@ VALUES
 ),
 (
     'sarah.instructor@overload.io',
-    'aGFzaGVkX0luc3RydWN0b3JAMTIz',
+    '$2a$11$qCtb5UfFargcJaG/3J8WNepB7YUjHleCLOd8i50jII2gAB0Qxiu9i',
     'Sarah Mitchell',
     'https://api.dicebear.com/7.x/initials/svg?seed=SM',
     'Full-stack developer and React enthusiast.',
@@ -55,22 +55,22 @@ VALUES
 ),
 (
     'alice@student.com',
-    'aGFzaGVkX1N0dWRlbnRAMTIz',
+    '$2a$11$YjkhxW/KQLQncqP3mYPek.1qtpHkCxQ348XjrGhX8jYXKr/QM6xo.',
     'Alice Johnson',
     'https://api.dicebear.com/7.x/initials/svg?seed=AJ',
     'Aspiring backend developer.',
-    2,
+    0,
     1,
     GETUTCDATE(),
     GETUTCDATE()
 ),
 (
     'bob@student.com',
-    'aGFzaGVkX1N0dWRlbnRAMTIz',
+    '$2a$11$YTd2cpTTc36YqZhDd/l49uPjUM81aY5Z6Vdbzxfwg8f5z2vxC.jUS',
     'Bob Williams',
     'https://api.dicebear.com/7.x/initials/svg?seed=BW',
     'Computer science student interested in full-stack development.',
-    2,
+    0,
     1,
     GETUTCDATE(),
     GETUTCDATE()
