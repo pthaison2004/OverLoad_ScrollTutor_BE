@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OverLoad.Services.DTOs.Request;
 using OverLoad.Services.Interfaces;
@@ -33,6 +34,7 @@ public class LessonsController : ControllerBase
 
     /// <summary>Create a new lesson. OrderIndex is auto-assigned as the next available slot.</summary>
     [HttpPost]
+    [Authorize(Roles = "Instructor,Admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -48,6 +50,7 @@ public class LessonsController : ControllerBase
 
     /// <summary>Update a lesson, including reordering via OrderIndex.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Instructor,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -63,6 +66,7 @@ public class LessonsController : ControllerBase
 
     /// <summary>Delete a lesson. Course totals (duration, count) are recalculated automatically.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Instructor,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)

@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OverLoad.Services.DTOs.Request;
 using OverLoad.Services.Interfaces;
@@ -60,6 +61,7 @@ public class CoursesController : ControllerBase
 
     /// <summary>Create a new course. Slug is auto-generated from title.</summary>
     [HttpPost]
+    [Authorize(Roles = "Instructor,Admin")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateCourseRequest request)
@@ -73,6 +75,7 @@ public class CoursesController : ControllerBase
 
     /// <summary>Update an existing course.</summary>
     [HttpPut("{id:int}")]
+    [Authorize(Roles = "Instructor,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
@@ -88,6 +91,7 @@ public class CoursesController : ControllerBase
 
     /// <summary>Delete a course and all its lessons.</summary>
     [HttpDelete("{id:int}")]
+    [Authorize(Roles = "Instructor,Admin")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Delete(int id)
