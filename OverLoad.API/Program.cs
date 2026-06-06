@@ -9,6 +9,7 @@ using OverLoad.Repositories.Interfaces;
 using OverLoad.Services.Implementations;
 using OverLoad.Services.Interfaces;
 using System.Text;
+using PayOS;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -66,6 +67,14 @@ builder.Services.AddAuthentication(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// ── PayOS Client ─────────────────────────────────────────────────────────────
+var payOsClientId = builder.Configuration["PayOS:ClientId"] ?? Environment.GetEnvironmentVariable("PAYOS_CLIENT_ID") ?? string.Empty;
+var payOsApiKey = builder.Configuration["PayOS:ApiKey"] ?? Environment.GetEnvironmentVariable("PAYOS_API_KEY") ?? string.Empty;
+var payOsChecksumKey = builder.Configuration["PayOS:ChecksumKey"] ?? Environment.GetEnvironmentVariable("PAYOS_CHECKSUM_KEY") ?? string.Empty;
+
+builder.Services.AddSingleton(new PayOSClient(payOsClientId, payOsApiKey, payOsChecksumKey));
+
 // ── Controllers ───────────────────────────────────────────────────────────────
 builder.Services.AddControllers();
 

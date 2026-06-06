@@ -84,6 +84,9 @@ public class EnrollmentService : IEnrollmentService
         if (await _enrollmentRepository.IsEnrolledAsync(request.UserId, request.CourseId))
             return ApiResponse<EnrollmentResponse>.FailResult("User is already enrolled in this course.");
 
+        if (course.Price > 0)
+            return ApiResponse<EnrollmentResponse>.FailResult("Cannot enroll directly in a paid course. Please purchase the course first.");
+
         var enrollment = new Enrollment
         {
             UserId = request.UserId,
