@@ -56,4 +56,6 @@ public class EnrollmentRepository : BaseRepository<Enrollment>, IEnrollmentRepos
         .Where(e => e.UserId == userId)
         .OrderByDescending(e => e.LastAccessedAt)
         .ToListAsync();
+    public async Task<IEnumerable<Enrollment>> GetAllAsync()
+    => await _dbSet.Include(e => e.User).Include(e => e.Course).ToListAsync();
 }

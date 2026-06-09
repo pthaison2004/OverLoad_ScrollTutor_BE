@@ -11,4 +11,5 @@ public interface IEnrollmentRepository : IBaseRepository<Enrollment>
     Task<(IEnumerable<Enrollment> Items, int TotalCount)> SearchAsync(
         int? userId, int? courseId, int page, int pageSize, string? sortBy, bool sortDesc);
     Task<IEnumerable<Enrollment>> GetByUserIdWithDetailsAsync(int userId);
+    Task<IEnumerable<Enrollment>> GetAllAsync();
 }
