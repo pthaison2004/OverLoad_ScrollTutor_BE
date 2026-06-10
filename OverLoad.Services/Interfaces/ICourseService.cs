@@ -14,4 +14,5 @@ public interface ICourseService
     Task<ApiResponse<bool>> DeleteAsync(int id);
     Task<PagedResponse<CourseResponse>> GetByCategoryAsync(
     string category, int page = 1, int pageSize = 10);
+    Task<ApiResponse<bool>> TogglePublishAsync(int id);
 }

@@ -15,6 +15,7 @@ public class User : BaseEntity
     public string StudentVerificationStatus { get; set; } = "NONE";
     public string? StudentCardPath { get; set; }
     public bool HasSeenStudentRejection { get; set; } = false;
+    public bool IsLocked { get; set; } = false;
     // JWT Refresh Token
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiresAt { get; set; }

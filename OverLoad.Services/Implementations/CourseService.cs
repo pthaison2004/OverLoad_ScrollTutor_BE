@@ -176,4 +176,17 @@ public class CourseService : ICourseService
             IsFree = l.IsFree
         }).ToList()
     };
+    public async Task<ApiResponse<bool>> TogglePublishAsync(int id)
+    {
+        var course = await _courseRepository.GetByIdAsync(id);
+        if (course == null)
+            return ApiResponse<bool>.FailResult("Course not found.");
+
+        course.IsPublished = !course.IsPublished;
+        await _courseRepository.UpdateAsync(course);
+
+        var msg = course.IsPublished ? "Course published." : "Course unpublished.";
+        return ApiResponse<bool>.SuccessResult(true, msg);
+    }
+
 }
