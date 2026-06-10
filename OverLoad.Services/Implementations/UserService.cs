@@ -100,6 +100,9 @@ public class UserService : IUserService
         Bio = user.Bio,
         Role = user.Role.ToString(),
         IsVerified = user.IsVerified,
+        StudentVerificationStatus = user.StudentVerificationStatus,
+        StudentCardPath = user.StudentCardPath,
+        HasSeenStudentRejection = user.HasSeenStudentRejection,
         CreatedAt = user.CreatedAt,
         UpdatedAt = user.UpdatedAt
     };
@@ -113,6 +116,9 @@ public class UserService : IUserService
         Bio = user.Bio,
         Role = user.Role.ToString(),
         IsVerified = user.IsVerified,
+        StudentVerificationStatus = user.StudentVerificationStatus,
+        StudentCardPath = user.StudentCardPath,
+        HasSeenStudentRejection = user.HasSeenStudentRejection,
         CreatedAt = user.CreatedAt,
         UpdatedAt = user.UpdatedAt,
         Enrollments = user.Enrollments.Select(e => new EnrollmentSummaryResponse

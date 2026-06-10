@@ -12,6 +12,9 @@ public class User : BaseEntity
     public string? Bio { get; set; }
     public UserRole Role { get; set; } = UserRole.Student;
     public bool IsVerified { get; set; } = false;
+    public string StudentVerificationStatus { get; set; } = "NONE";
+    public string? StudentCardPath { get; set; }
+    public bool HasSeenStudentRejection { get; set; } = false;
     // JWT Refresh Token
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiresAt { get; set; }

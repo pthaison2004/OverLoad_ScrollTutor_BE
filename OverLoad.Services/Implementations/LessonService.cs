@@ -180,6 +180,8 @@ public class LessonService : ILessonService
             {
                 Id = lesson.Id,
                 Title = lesson.Title,
+                Description = lesson.Description,
+                Content = lesson.Content,
                 DurationMinutes = lesson.DurationMinutes,
                 OrderIndex = lesson.OrderIndex,
                 IsFree = lesson.IsFree,

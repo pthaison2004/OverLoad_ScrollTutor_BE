@@ -200,20 +200,27 @@ public class PaymentController : ControllerBase
 
         try
         {
+            var user = await _context.Users.FindAsync(userId);
+            decimal packagePrice = proCourse.Price;
+            if (user != null && user.StudentVerificationStatus == "APPROVED")
+            {
+                packagePrice = Math.Round(packagePrice * 0.7m);
+            }
+
             var items = new List<PaymentLinkItem>
             {
                 new PaymentLinkItem
                 {
                     Name = proCourse.Title.Substring(0, Math.Min(25, proCourse.Title.Length)),
                     Quantity = 1,
-                    Price = (long)proCourse.Price
+                    Price = (long)packagePrice
                 }
             };
 
             var paymentRequest = new CreatePaymentLinkRequest
             {
                 OrderCode = orderCode,
-                Amount = (int)proCourse.Price,
+                Amount = (int)packagePrice,
                 Description = $"Pro {request.PackageType}".Substring(0, Math.Min(25, $"Pro {request.PackageType}".Length)),
                 ReturnUrl = returnUrl,
                 CancelUrl = cancelUrl,
@@ -228,7 +235,7 @@ public class PaymentController : ControllerBase
                 OrderCode = orderCode,
                 UserId = userId,
                 CourseId = proCourse.Id,
-                Amount = proCourse.Price,
+                Amount = packagePrice,
                 Currency = "VND",
                 Status = "PENDING",
                 PaymentTime = DateTime.UtcNow
@@ -260,13 +267,20 @@ public class PaymentController : ControllerBase
 
         var proCourse = await GetOrCreateProCourseAsync(request.PackageType);
 
+        var user = await _context.Users.FindAsync(userId);
+        decimal packagePrice = proCourse.Price;
+        if (user != null && user.StudentVerificationStatus == "APPROVED")
+        {
+            packagePrice = Math.Round(packagePrice * 0.7m);
+        }
+
         // 1. Tính toán số dư hiện tại của học viên
         var balance = await _context.Transactions
             .Include(t => t.Course)
             .Where(t => t.UserId == userId && t.Status == "SUCCESS" && (t.Course.Slug == "system-deposit-balance" || t.Amount < 0))
             .SumAsync(t => t.Amount);
 
-        if (balance < proCourse.Price)
+        if (balance < packagePrice)
         {
             return BadRequest(new { message = "Số dư tài khoản không đủ. Vui lòng nạp thêm tiền." });
         }
@@ -281,7 +295,7 @@ public class PaymentController : ControllerBase
             OrderCode = orderCode,
             UserId = userId,
             CourseId = proCourse.Id,
-            Amount = -proCourse.Price, // Số âm biểu thị giao dịch trừ tiền
+            Amount = -packagePrice, // Số âm biểu thị giao dịch trừ tiền
             Currency = "VND",
             Status = "SUCCESS",
             PaymentTime = DateTime.UtcNow
@@ -423,13 +437,14 @@ public class PaymentController : ControllerBase
             .OrderByDescending(t => t.PaymentTime)
             .ToListAsync();
 
-        decimal totalRevenue = 0;
-        int coursesSold = successTransactions.Count;
+        // 1. Total revenue = sum of all real cash deposits/purchases (where amount > 0)
+        decimal totalRevenue = successTransactions
+            .Where(t => t.Amount > 0)
+            .Sum(t => t.Amount);
 
-        foreach (var t in successTransactions)
-        {
-            totalRevenue += t.Amount;
-        }
+        // 2. Courses sold = count of all course/PRO purchases (excluding deposits with CourseId = 6)
+        int coursesSold = successTransactions
+            .Count(t => t.CourseId != 6);
 
         var recentList = new List<object>();
         foreach (var t in successTransactions.Take(10))
@@ -440,7 +455,7 @@ public class PaymentController : ControllerBase
                 orderCode = t.OrderCode,
                 userFullName = t.User?.FullName ?? "Học viên",
                 courseTitle = t.Course?.Title ?? "Khóa học",
-                amount = t.Amount,
+                amount = Math.Abs(t.Amount), // display purchase amounts as positive
                 paymentTime = t.PaymentTime,
                 status = t.Status
             });
@@ -453,6 +468,7 @@ public class PaymentController : ControllerBase
             transactions = recentList
         });
     }
+
 
     private async Task<Course> GetOrCreateProCourseAsync(string packageType)
     {

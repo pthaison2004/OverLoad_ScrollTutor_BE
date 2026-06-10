@@ -1,4 +1,4 @@
-﻿using OverLoad.Domain.Entities;
+using OverLoad.Domain.Entities;
 using OverLoad.Domain.Enums;
 using OverLoad.Repositories.Interfaces;
 using OverLoad.Services.Common;
@@ -114,6 +114,9 @@ namespace OverLoad.Services.Implementations
                 Bio = user.Bio,
                 Role = user.Role.ToString(),
                 IsVerified = user.IsVerified,
+                StudentVerificationStatus = user.StudentVerificationStatus,
+                StudentCardPath = user.StudentCardPath,
+                HasSeenStudentRejection = user.HasSeenStudentRejection,
                 CreatedAt = user.CreatedAt,
                 UpdatedAt = user.UpdatedAt
             }
