@@ -9,6 +9,7 @@ public class CourseResponse
     public string? ThumbnailUrl { get; set; }
     public string? Category { get; set; }
     public string Level { get; set; } = string.Empty;
+    public decimal Price { get; set; }
     public bool IsPublished { get; set; }
     public int TotalDurationMinutes { get; set; }
     public int TotalLessons { get; set; }

@@ -114,7 +114,7 @@ namespace OverLoad.Services.Implementations
                 Bio = user.Bio,
                 Role = user.Role.ToString(),
                 IsVerified = user.IsVerified,
-                StudentVerificationStatus = user.StudentVerificationStatus,
+                StudentVerificationStatus = user.StudentVerificationStatus ?? "NONE",
                 StudentCardPath = user.StudentCardPath,
                 HasSeenStudentRejection = user.HasSeenStudentRejection,
                 CreatedAt = user.CreatedAt,

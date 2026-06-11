@@ -18,6 +18,9 @@ public class CreateCourseRequest
 
     public string Level { get; set; } = "Beginner";
 
+    [Range(0, double.MaxValue)]
+    public decimal Price { get; set; } = 0;
+
     public bool IsPublished { get; set; } = false;
 }
 
@@ -36,6 +39,9 @@ public class UpdateCourseRequest
     public string? Category { get; set; }
 
     public string Level { get; set; } = "Beginner";
+
+    [Range(0, double.MaxValue)]
+    public decimal Price { get; set; } = 0;
 
     public bool IsPublished { get; set; } = false;
 }

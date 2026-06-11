@@ -66,6 +66,7 @@ public class CourseService : ICourseService
             ThumbnailUrl = request.ThumbnailUrl,
             Category = request.Category,
             Level = level,
+            Price = request.Price,
             IsPublished = request.IsPublished
         };
 
@@ -96,6 +97,7 @@ public class CourseService : ICourseService
         course.ThumbnailUrl = request.ThumbnailUrl;
         course.Category = request.Category;
         course.Level = level;
+        course.Price = request.Price;
         course.IsPublished = request.IsPublished;
 
         await _courseRepository.UpdateAsync(course);
@@ -145,6 +147,7 @@ public class CourseService : ICourseService
         ThumbnailUrl = c.ThumbnailUrl,
         Category = c.Category,
         Level = c.Level.ToString(),
+        Price = c.Price,
         IsPublished = c.IsPublished,
         TotalDurationMinutes = c.TotalDurationMinutes,
         TotalLessons = c.TotalLessons,
@@ -161,6 +164,7 @@ public class CourseService : ICourseService
         ThumbnailUrl = c.ThumbnailUrl,
         Category = c.Category,
         Level = c.Level.ToString(),
+        Price = c.Price,
         IsPublished = c.IsPublished,
         TotalDurationMinutes = c.TotalDurationMinutes,
         TotalLessons = c.TotalLessons,

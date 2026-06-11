@@ -35,7 +35,7 @@ public class UpdateLessonRequest
     public int DurationMinutes { get; set; }
 
     [Range(1, int.MaxValue)]
-    public int OrderIndex { get; set; }
+    public int? OrderIndex { get; set; }
 
     public bool IsFree { get; set; } = false;
 }

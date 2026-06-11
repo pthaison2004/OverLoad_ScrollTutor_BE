@@ -114,7 +114,10 @@ public class LessonService : ILessonService
         lesson.Description = request.Description;
         lesson.Content = request.Content;
         lesson.DurationMinutes = request.DurationMinutes;
-        lesson.OrderIndex = request.OrderIndex;
+        if (request.OrderIndex.HasValue)
+        {
+            lesson.OrderIndex = request.OrderIndex.Value;
+        }
         lesson.IsFree = request.IsFree;
 
         await _lessonRepository.UpdateAsync(lesson);
