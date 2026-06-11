@@ -39,8 +39,8 @@ builder.Services.AddScoped<IManagerService, ManagerService>();
 // ── JWT Authentication ────────────────────────────────────────────────────────
 var jwtKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException("Jwt:SecretKey is not configured.");
-var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "OverLoadAPI";
-var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "OverLoadClient";
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ScrollTutorAPI";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ScrollTutorClient";
 
 // HttpClient cho Gemini
 builder.Services.AddHttpClient<IChatService, GeminiChatService>(client =>
@@ -86,13 +86,13 @@ builder.Services.AddSwaggerGen(options =>
 {
     options.SwaggerDoc("v1", new OpenApiInfo
     {
-        Title = "OverLoad API",
+        Title = "ScrollTutor API",
         Version = "v1",
-        Description = "RESTful API for the OverLoad e-learning platform",
+        Description = "RESTful API for the ScrollTutor e-learning platform",
         Contact = new OpenApiContact
         {
-            Name = "OverLoad Team",
-            Email = "dev@overload.io"
+            Name = "ScrollTutor Team",
+            Email = "support@scrolltutor.com"
         }
     });
     options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
@@ -144,9 +144,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "OverLoad API v1");
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "ScrollTutor API v1");
         c.RoutePrefix = string.Empty; // Swagger at root
-        c.DocumentTitle = "OverLoad API";
+        c.DocumentTitle = "ScrollTutor API";
         c.DefaultModelsExpandDepth(-1); // Hide schema section by default
     });
 }
