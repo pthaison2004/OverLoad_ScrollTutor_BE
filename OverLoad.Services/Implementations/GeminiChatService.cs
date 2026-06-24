@@ -94,7 +94,7 @@ public class GeminiChatService : IChatService
                 ?? throw new InvalidOperationException("Gemini API key not configured. Please set the 'Gemini:ApiKey' configuration or 'GEMINI_API_KEY' environment variable.");
             var model = _configuration["Gemini:Model"]
                 ?? Environment.GetEnvironmentVariable("GEMINI_MODEL")
-                ?? "gemini-3.5-flash";
+                ?? "gemini-3.1-flash-lite";
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
             var json = JsonSerializer.Serialize(payload);
