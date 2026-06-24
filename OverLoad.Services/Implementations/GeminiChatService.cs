@@ -1,4 +1,4 @@
-﻿using System.Text;
+using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -89,8 +89,12 @@ public class GeminiChatService : IChatService
 
             // ── Bước 4: Gọi Gemini API ────────────────────────────────────────
             var apiKey = _configuration["Gemini:ApiKey"]
-                ?? throw new InvalidOperationException("Gemini API key not configured.");
-            var model = _configuration["Gemini:Model"] ?? "gemini-2.0-flash";
+                ?? Environment.GetEnvironmentVariable("GEMINI_API_KEY")
+                ?? Environment.GetEnvironmentVariable("Gemini__ApiKey")
+                ?? throw new InvalidOperationException("Gemini API key not configured. Please set the 'Gemini:ApiKey' configuration or 'GEMINI_API_KEY' environment variable.");
+            var model = _configuration["Gemini:Model"]
+                ?? Environment.GetEnvironmentVariable("GEMINI_MODEL")
+                ?? "gemini-2.0-flash";
             var url = $"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent?key={apiKey}";
 
             var json = JsonSerializer.Serialize(payload);
@@ -160,8 +164,19 @@ public class GeminiChatService : IChatService
 
     private object BuildPayload(string userMessage, List<ChatHistoryItem> history)
     {
-        var maxTokens = int.Parse(_configuration["Gemini:MaxOutputTokens"] ?? "2048");
-        var temperature = double.Parse(_configuration["Gemini:Temperature"] ?? "0.7");
+        var maxTokensVal = _configuration["Gemini:MaxOutputTokens"]
+            ?? Environment.GetEnvironmentVariable("GEMINI_MAX_OUTPUT_TOKENS");
+        if (!int.TryParse(maxTokensVal, out var maxTokens))
+        {
+            maxTokens = 2048;
+        }
+
+        var tempVal = _configuration["Gemini:Temperature"]
+            ?? Environment.GetEnvironmentVariable("GEMINI_TEMPERATURE");
+        if (!double.TryParse(tempVal, System.Globalization.CultureInfo.InvariantCulture, out var temperature))
+        {
+            temperature = 0.7;
+        }
 
         // Build contents array: system + history + current message
         var contents = new List<object>();
