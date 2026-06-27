@@ -19,6 +19,10 @@ public class User : BaseEntity
     // JWT Refresh Token
     public string? RefreshToken { get; set; }
     public DateTime? RefreshTokenExpiresAt { get; set; }
+    
+    // AI Chatbot Limits
+    public int AiQuestionsAskedToday { get; set; } = 0;
+    public DateTime LastAiQuestionDate { get; set; } = DateTime.UtcNow;
 
 
     // Navigation

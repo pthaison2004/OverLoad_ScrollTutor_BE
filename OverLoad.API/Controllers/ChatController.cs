@@ -1,7 +1,8 @@
-﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using OverLoad.Services.DTOs.Request;
 using OverLoad.Services.Interfaces;
+using System.Security.Claims;
 
 namespace OverLoad.API.Controllers;
 
@@ -42,7 +43,11 @@ public class ChatController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var result = await _chatService.SendMessageAsync(request);
+        var userIdClaim = User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub");
+        if (userIdClaim == null || !int.TryParse(userIdClaim, out var userId))
+            return Unauthorized();
+
+        var result = await _chatService.SendMessageAsync(userId, request);
         if (!result.Success) return StatusCode(500, result);
         return Ok(result);
     }

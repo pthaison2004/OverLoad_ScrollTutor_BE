@@ -2,10 +2,12 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore;
 using OverLoad.Services.Common;
 using OverLoad.Services.DTOs.Request;
 using OverLoad.Services.DTOs.Response;
 using OverLoad.Services.Interfaces;
+using OverLoad.Repositories.Data;
 
 namespace OverLoad.Services.Implementations;
 
@@ -14,6 +16,8 @@ public class GeminiChatService : IChatService
     private readonly HttpClient _httpClient;
     private readonly IConfiguration _configuration;
     private readonly ILogger<GeminiChatService> _logger;
+    private readonly AppDbContext _context;
+    private readonly ISubscriptionService _subscriptionService;
 
     private static readonly string[] InjectionPatterns =
     {
@@ -55,17 +59,59 @@ public class GeminiChatService : IChatService
     public GeminiChatService(
         HttpClient httpClient,
         IConfiguration configuration,
-        ILogger<GeminiChatService> logger)
+        ILogger<GeminiChatService> logger,
+        AppDbContext context,
+        ISubscriptionService subscriptionService)
     {
         _httpClient = httpClient;
         _configuration = configuration;
         _logger = logger;
+        _context = context;
+        _subscriptionService = subscriptionService;
     }
 
-    public async Task<ApiResponse<ChatResponse>> SendMessageAsync(ChatRequest request)
+    public async Task<ApiResponse<ChatResponse>> SendMessageAsync(int userId, ChatRequest request)
     {
         try
         {
+            // ── Bước 0: Kiểm tra giới hạn câu hỏi AI ────────────────────────
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
+            if (user == null)
+            {
+                return ApiResponse<ChatResponse>.FailResult("Không tìm thấy người dùng.");
+            }
+
+            var activePlan = await _subscriptionService.GetUserActivePlanAsync(userId);
+            int dailyLimit = activePlan switch
+            {
+                "PRO" => int.MaxValue,
+                "PLUS" => 20,
+                _ => 3 // FREE
+            };
+
+            // So sánh thuần UTC để đảm bảo đồng bộ múi giờ server/client
+            var today = DateTime.UtcNow.Date;
+            if (user.LastAiQuestionDate.ToUniversalTime().Date < today)
+            {
+                user.AiQuestionsAskedToday = 0;
+            }
+
+            if (user.AiQuestionsAskedToday >= dailyLimit)
+            {
+                string blockMsg = activePlan switch
+                {
+                    "PLUS" => "Bạn đã dùng hết 20 lượt hỏi AI của gói Plus hôm nay. Hãy nâng cấp lên gói Pro để không giới hạn.",
+                    _ => "Bạn đã dùng hết 3 lượt hỏi AI miễn phí hôm nay. Hãy nâng cấp lên gói Plus hoặc Pro để tiếp tục."
+                };
+
+                return ApiResponse<ChatResponse>.SuccessResult(new ChatResponse
+                {
+                    Reply = blockMsg,
+                    IsBlocked = true,
+                    BlockReason = blockMsg
+                });
+            }
+
             // ── Bước 1: Kiểm tra prompt injection ────────────────────────────
             var injectionCheck = DetectInjection(request.Message);
             if (injectionCheck != null)
@@ -128,6 +174,11 @@ public class GeminiChatService : IChatService
 
             var replyText = candidate?.Content?.Parts?.FirstOrDefault()?.Text
                 ?? "Sorry, I could not generate a response. Please try again.";
+
+            // Cập nhật lượt hỏi AI thành công
+            user.AiQuestionsAskedToday++;
+            user.LastAiQuestionDate = DateTime.UtcNow;
+            await _context.SaveChangesAsync();
 
             return ApiResponse<ChatResponse>.SuccessResult(new ChatResponse
             {
@@ -253,4 +304,5 @@ public class GeminiChatService : IChatService
         public int CandidatesTokenCount { get; set; }
         public int TotalTokenCount { get; set; }
     }
+
 }

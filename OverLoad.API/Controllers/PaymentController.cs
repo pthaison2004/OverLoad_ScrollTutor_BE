@@ -472,9 +472,28 @@ public class PaymentController : ControllerBase
 
     private async Task<Course> GetOrCreateProCourseAsync(string packageType)
     {
-        string slug = packageType == "year" ? "pro-upgrade-year" : "pro-upgrade-month";
-        string title = packageType == "year" ? "Gói nâng cấp PRO - 1 năm" : "Gói nâng cấp PRO - 1 tháng";
-        decimal price = packageType == "year" ? 599000 : 69000;
+        string slug;
+        string title;
+        decimal price;
+
+        if (packageType == "plus-month")
+        {
+            slug = "plus-upgrade-month";
+            title = "Gói nâng cấp PLUS - 1 tháng";
+            price = 69000;
+        }
+        else if (packageType == "pro-month" || packageType == "month")
+        {
+            slug = "pro-upgrade-month";
+            title = "Gói nâng cấp PRO - 1 tháng";
+            price = 119000;
+        }
+        else
+        {
+            slug = "pro-upgrade-year";
+            title = "Gói nâng cấp PRO - 1 năm";
+            price = 999000;
+        }
 
         var course = await _context.Courses.FirstOrDefaultAsync(c => c.Slug == slug);
         if (course == null)
@@ -483,12 +502,18 @@ public class PaymentController : ControllerBase
             {
                 Title = title,
                 Slug = slug,
-                Description = "Nâng cấp tài khoản PRO để học trọn đời tất cả các khóa học trên hệ thống.",
+                Description = "Nâng cấp tài khoản hệ thống để mở khóa toàn bộ khóa học Premium.",
                 Price = price,
                 Category = "System",
                 IsPublished = false
             };
             _context.Courses.Add(course);
+            await _context.SaveChangesAsync();
+        }
+        else if (course.Price != price)
+        {
+            course.Price = price;
+            course.Title = title;
             await _context.SaveChangesAsync();
         }
         return course;

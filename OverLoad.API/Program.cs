@@ -42,6 +42,9 @@ var jwtKey = builder.Configuration["Jwt:SecretKey"]
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "ScrollTutorAPI";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "ScrollTutorClient";
 
+// Subscription Service (plan detection, AI limits)
+builder.Services.AddScoped<ISubscriptionService, SubscriptionService>();
+
 // HttpClient cho Gemini
 builder.Services.AddHttpClient<IChatService, GeminiChatService>(client =>
 {
