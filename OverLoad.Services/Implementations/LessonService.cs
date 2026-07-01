@@ -12,15 +12,18 @@ public class LessonService : ILessonService
     private readonly ILessonRepository _lessonRepository;
     private readonly ICourseRepository _courseRepository;
     private readonly IUserLessonProgressRepository _progressRepository;
+    private readonly IUserRepository _userRepository;
 
     public LessonService(
         ILessonRepository lessonRepository,
         ICourseRepository courseRepository,
-        IUserLessonProgressRepository progressRepository)
+        IUserLessonProgressRepository progressRepository,
+        IUserRepository userRepository)
     {
         _lessonRepository = lessonRepository;
         _courseRepository = courseRepository;
         _progressRepository = progressRepository;
+        _userRepository = userRepository;
     }
 
     public async Task<ApiResponse<LessonResponse>> GetByIdAsync(int id)
@@ -153,25 +156,36 @@ public class LessonService : ILessonService
 
         // Lấy progress nếu user đã đăng nhập
         List<UserLessonProgress> progressList = new();
+        bool isStaff = false;
+
         if (userId.HasValue)
         {
             var allProgress = await _progressRepository.GetByUserIdAsync(userId.Value);
             progressList = allProgress
                 .Where(p => lessonList.Select(l => l.Id).Contains(p.LessonId))
                 .ToList();
+
+            var user = await _userRepository.GetByIdAsync(userId.Value);
+            if (user != null)
+            {
+                var roleStr = user.Role.ToString();
+                isStaff = roleStr == "Admin" || roleStr == "Instructor" || roleStr == "Manager";
+            }
         }
 
-        var result = lessonList.Select(lesson =>
+        var result = lessonList.Select((lesson, index) =>
         {
             var progress = progressList.FirstOrDefault(p => p.LessonId == lesson.Id);
 
-            // Lesson bị lock nếu không free và chưa đăng nhập
-            // hoặc lesson trước chưa completed (trừ lesson đầu tiên và lesson free)
-            var previousLesson = lessonList.FirstOrDefault(l => l.OrderIndex == lesson.OrderIndex - 1);
-            var previousCompleted = previousLesson == null
-                || progressList.Any(p => p.LessonId == previousLesson.Id && p.Completed);
-
-            var isLocked = !lesson.IsFree && (!userId.HasValue || !previousCompleted);
+            // Gói học tuần tự: bài học đầu tiên (index = 0) luôn mở khóa.
+            // Các bài học tiếp theo bị khóa trừ khi người dùng là Admin/Instructor/Manager hoặc đã hoàn thành bài trước đó.
+            bool isLocked = false;
+            if (index > 0 && !isStaff)
+            {
+                var previousLesson = lessonList[index - 1];
+                var previousCompleted = progressList.Any(p => p.LessonId == previousLesson.Id && p.Completed);
+                isLocked = !previousCompleted;
+            }
 
             var watchPercentage = progress != null && lesson.DurationMinutes > 0
                 ? Math.Clamp(
