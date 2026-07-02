@@ -13,16 +13,20 @@ public class EnrollmentService : IEnrollmentService
     private readonly IUserRepository _userRepository;
     private readonly ICourseRepository _courseRepository;
     private readonly IUserLessonProgressRepository _progressRepository;
+    private readonly ISubscriptionService _subscriptionService;
+
     public EnrollmentService(
-    IEnrollmentRepository enrollmentRepository,
-    IUserRepository userRepository,
-    ICourseRepository courseRepository,
-    IUserLessonProgressRepository progressRepository)
+        IEnrollmentRepository enrollmentRepository,
+        IUserRepository userRepository,
+        ICourseRepository courseRepository,
+        IUserLessonProgressRepository progressRepository,
+        ISubscriptionService subscriptionService)
     {
         _enrollmentRepository = enrollmentRepository;
         _userRepository = userRepository;
         _courseRepository = courseRepository;
         _progressRepository = progressRepository;
+        _subscriptionService = subscriptionService;
     }
 
     public async Task<ApiResponse<EnrollmentResponse>> GetByIdAsync(int id)
@@ -74,7 +78,8 @@ public class EnrollmentService : IEnrollmentService
 
     public async Task<ApiResponse<EnrollmentResponse>> EnrollAsync(CreateEnrollmentRequest request)
     {
-        if (!await _userRepository.ExistsAsync(request.UserId))
+        var user = await _userRepository.GetByIdAsync(request.UserId);
+        if (user == null)
             return ApiResponse<EnrollmentResponse>.FailResult("User not found.");
 
         var course = await _courseRepository.GetByIdAsync(request.CourseId);
@@ -84,8 +89,25 @@ public class EnrollmentService : IEnrollmentService
         if (await _enrollmentRepository.IsEnrolledAsync(request.UserId, request.CourseId))
             return ApiResponse<EnrollmentResponse>.FailResult("User is already enrolled in this course.");
 
-        if (course.Price > 0)
-            return ApiResponse<EnrollmentResponse>.FailResult("Cannot enroll directly in a paid course. Please purchase the course first.");
+        var roleStr = user.Role.ToString();
+        bool isStaff = roleStr == "Admin" || roleStr == "Instructor" || roleStr == "Manager";
+
+        if (!isStaff)
+        {
+            var activePlan = await _subscriptionService.GetUserActivePlanAsync(request.UserId);
+            if (course.Level == OverLoad.Domain.Enums.CourseLevel.Intermediate && activePlan != "PLUS" && activePlan != "PRO")
+            {
+                return ApiResponse<EnrollmentResponse>.FailResult("Bạn cần nâng cấp lên gói PLUS hoặc PRO để tham gia khóa học này.");
+            }
+            if (course.Level == OverLoad.Domain.Enums.CourseLevel.Advanced && activePlan != "PRO")
+            {
+                return ApiResponse<EnrollmentResponse>.FailResult("Bạn cần nâng cấp lên gói PRO để tham gia khóa học này.");
+            }
+            if (course.Level == OverLoad.Domain.Enums.CourseLevel.Beginner && course.Price > 0)
+            {
+                return ApiResponse<EnrollmentResponse>.FailResult("Cannot enroll directly in a paid course. Please purchase the course first.");
+            }
+        }
 
         var enrollment = new Enrollment
         {
@@ -96,8 +118,7 @@ public class EnrollmentService : IEnrollmentService
 
         var created = await _enrollmentRepository.AddAsync(enrollment);
 
-        var user = await _userRepository.GetByIdAsync(request.UserId);
-        created.User = user!;
+        created.User = user;
         created.Course = course;
 
         return ApiResponse<EnrollmentResponse>.SuccessResult(

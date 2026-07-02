@@ -627,6 +627,40 @@ public class PaymentController : ControllerBase
         }
         return course;
     }
+
+    [HttpPost("add-balance-admin-gift")]
+    public async Task<IActionResult> AddBalanceAdminGift([FromBody] GiftBalanceRequest request)
+    {
+        var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == request.UserId || u.Email == request.Email);
+        if (user == null) return NotFound("User not found");
+
+        var course = await _context.Courses.FirstOrDefaultAsync(c => c.Slug == "system-deposit-balance");
+        if (course == null) return NotFound("Deposit course not found");
+
+        var transaction = new Transaction
+        {
+            TransactionId = "gift_" + Guid.NewGuid().ToString("N")[..12],
+            OrderCode = DateTime.UtcNow.Ticks,
+            UserId = user.Id,
+            CourseId = course.Id,
+            Amount = request.Amount,
+            Currency = "VND",
+            Status = "SUCCESS",
+            PaymentTime = DateTime.UtcNow
+        };
+
+        _context.Transactions.Add(transaction);
+        await _context.SaveChangesAsync();
+
+        return Ok(new { success = true, message = $"Successfully added {request.Amount} VND to {user.FullName} ({user.Email})" });
+    }
+}
+
+public class GiftBalanceRequest
+{
+    public int UserId { get; set; }
+    public string? Email { get; set; }
+    public decimal Amount { get; set; }
 }
 
 public class CreateLinkRequest
