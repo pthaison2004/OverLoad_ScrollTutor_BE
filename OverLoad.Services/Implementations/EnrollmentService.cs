@@ -47,7 +47,7 @@ public class EnrollmentService : IEnrollmentService
     public async Task<PagedResponse<EnrollmentResponse>> GetAllAsync(EnrollmentQueryParams query)
     {
         query.Page = Math.Max(1, query.Page);
-        query.PageSize = Math.Clamp(query.PageSize, 1, 100);
+        query.PageSize = Math.Clamp(query.PageSize, 1, 10000);
 
         var (items, total) = await _enrollmentRepository.SearchAsync(
             query.UserId, query.CourseId, query.Page, query.PageSize, query.SortBy, query.SortDesc);

@@ -28,4 +28,5 @@ public class User : BaseEntity
     // Navigation
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
     public ICollection<UserLessonProgress> LessonProgresses { get; set; } = new List<UserLessonProgress>();
+    public ICollection<BugReport> BugReports { get; set; } = new List<BugReport>();
 }

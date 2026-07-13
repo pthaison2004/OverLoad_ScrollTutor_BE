@@ -19,4 +19,5 @@ public class Course : BaseEntity
     // Navigation
     public ICollection<Lesson> Lessons { get; set; } = new List<Lesson>();
     public ICollection<Enrollment> Enrollments { get; set; } = new List<Enrollment>();
+    public ICollection<BugReport> BugReports { get; set; } = new List<BugReport>();
 }

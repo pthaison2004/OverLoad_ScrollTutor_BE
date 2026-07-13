@@ -15,4 +15,5 @@ public class Lesson : BaseEntity
     // Navigation
     public Course Course { get; set; } = null!;
     public ICollection<UserLessonProgress> UserProgresses { get; set; } = new List<UserLessonProgress>();
+    public ICollection<BugReport> BugReports { get; set; } = new List<BugReport>();
 }

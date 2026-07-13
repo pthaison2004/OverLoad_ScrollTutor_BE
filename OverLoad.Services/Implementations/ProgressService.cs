@@ -1,4 +1,6 @@
-﻿// OverLoad.Services/Implementations/ProgressService.cs
+// OverLoad.Services/Implementations/ProgressService.cs
+using System;
+using System.Linq;
 using OverLoad.Domain.Entities;
 using OverLoad.Repositories.Implementations;
 using OverLoad.Repositories.Interfaces;
@@ -165,6 +167,33 @@ public class ProgressService : IProgressService
             }
 
             await _progressRepository.UpdateAsync(existing);
+
+            // Sync enrollment progress percentage
+            var lesson = await _lessonRepository.GetWithCourseAsync(request.LessonId);
+            if (lesson != null)
+            {
+                var lessonsInCourse = await _lessonRepository.GetByCourseIdAsync(lesson.CourseId);
+                var lessonsInCourseList = lessonsInCourse.ToList();
+                var userProgresses = await _progressRepository.GetByUserIdAsync(request.UserId);
+                var userProgressesList = userProgresses.ToList();
+                
+                var courseProgresses = userProgressesList
+                    .Where(p => lessonsInCourseList.Select(l => l.Id).Contains(p.LessonId))
+                    .ToList();
+
+                var totalLessons = lessonsInCourseList.Count;
+                if (totalLessons > 0)
+                {
+                    var completedCount = courseProgresses.Count(p => p.Completed && p.LessonId != request.LessonId);
+                    if (existing.Completed)
+                    {
+                        completedCount++;
+                    }
+                    decimal progressPercentage = ((decimal)completedCount / totalLessons) * 100;
+                    await UpdateEnrollmentProgressAsync(request.UserId, lesson.CourseId, progressPercentage);
+                }
+            }
+
             var updated = await _progressRepository.GetByUserAndLessonAsync(request.UserId, request.LessonId);
             return ApiResponse<ProgressResponse>.SuccessResult(
                 MapToResponse(updated!), "Progress updated successfully.");
@@ -183,6 +212,33 @@ public class ProgressService : IProgressService
         };
 
         await _progressRepository.AddAsync(progress);
+
+        // Sync enrollment progress percentage for new progress record
+        var newLesson = await _lessonRepository.GetWithCourseAsync(request.LessonId);
+        if (newLesson != null)
+        {
+            var lessonsInCourse = await _lessonRepository.GetByCourseIdAsync(newLesson.CourseId);
+            var lessonsInCourseList = lessonsInCourse.ToList();
+            var userProgresses = await _progressRepository.GetByUserIdAsync(request.UserId);
+            var userProgressesList = userProgresses.ToList();
+
+            var courseProgresses = userProgressesList
+                .Where(p => lessonsInCourseList.Select(l => l.Id).Contains(p.LessonId))
+                .ToList();
+
+            var totalLessons = lessonsInCourseList.Count;
+            if (totalLessons > 0)
+            {
+                var completedCount = courseProgresses.Count(p => p.Completed && p.LessonId != request.LessonId);
+                if (progress.Completed)
+                {
+                    completedCount++;
+                }
+                decimal progressPercentage = ((decimal)completedCount / totalLessons) * 100;
+                await UpdateEnrollmentProgressAsync(request.UserId, newLesson.CourseId, progressPercentage);
+            }
+        }
+
         var created = await _progressRepository.GetByUserAndLessonAsync(request.UserId, request.LessonId);
         return ApiResponse<ProgressResponse>.SuccessResult(
             MapToResponse(created!), "Progress created successfully.");
