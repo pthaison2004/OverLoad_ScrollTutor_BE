@@ -447,7 +447,7 @@ public class PaymentController : ControllerBase
             .Count(t => t.CourseId != 6);
 
         var recentList = new List<object>();
-        foreach (var t in successTransactions.Take(10))
+        foreach (var t in successTransactions.Take(10000))
         {
             recentList.Add(new
             {
