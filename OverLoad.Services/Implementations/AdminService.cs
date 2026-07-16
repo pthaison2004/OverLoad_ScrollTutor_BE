@@ -1,4 +1,4 @@
-﻿using OverLoad.Domain.Enums;
+using OverLoad.Domain.Enums;
 using OverLoad.Repositories.Interfaces;
 using OverLoad.Services.Common;
 using OverLoad.Services.DTOs.Response;
@@ -67,6 +67,9 @@ namespace OverLoad.Services.Implementations
 
             if (!Enum.TryParse<UserRole>(role, true, out var newRole))
                 return ApiResponse<bool>.FailResult($"Invalid role: {role}");
+
+            if (newRole == UserRole.Admin)
+                return ApiResponse<bool>.FailResult("Cannot assign Admin role through this endpoint.");
 
             user.Role = newRole;
             await _userRepository.UpdateAsync(user);
