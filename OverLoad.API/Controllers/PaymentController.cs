@@ -12,6 +12,7 @@ using PayOS.Models.V2.PaymentRequests;
 using PayOS.Models.V2.PaymentRequests.Invoices;
 using OverLoad.Domain.Entities;
 using OverLoad.Repositories.Data;
+using OverLoad.Services.Interfaces;
 
 namespace OverLoad.API.Controllers;
 
@@ -22,12 +23,14 @@ public class PaymentController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly PayOSClient _payOS;
+    private readonly ISubscriptionService _subscriptionService;
     private static readonly System.Threading.SemaphoreSlim _syncSemaphore = new System.Threading.SemaphoreSlim(1, 1);
 
-    public PaymentController(AppDbContext context, PayOSClient payOS)
+    public PaymentController(AppDbContext context, PayOSClient payOS, ISubscriptionService subscriptionService)
     {
         _context = context;
         _payOS = payOS;
+        _subscriptionService = subscriptionService;
     }
 
     private async Task SyncPendingTransactionsAsync(int userId)
@@ -97,6 +100,8 @@ public class PaymentController : ControllerBase
             {
                 await _context.SaveChangesAsync();
             }
+
+            await _subscriptionService.SyncUserSubscriptionsAsync(userId);
         }
         finally
         {
@@ -319,6 +324,7 @@ public class PaymentController : ControllerBase
         }
 
         await _context.SaveChangesAsync();
+        await _subscriptionService.SyncUserSubscriptionsAsync(userId);
 
         return Ok(new { message = "Nâng cấp tài khoản PRO thành công!" });
     }
@@ -367,6 +373,7 @@ public class PaymentController : ControllerBase
             }
 
             await _context.SaveChangesAsync();
+            await _subscriptionService.SyncUserSubscriptionsAsync(transaction.UserId);
 
             return Ok(new { success = true, message = "Giao dịch được xác thực và cập nhật thành công." });
         }

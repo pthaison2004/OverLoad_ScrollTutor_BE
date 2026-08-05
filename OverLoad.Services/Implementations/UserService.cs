@@ -1,20 +1,24 @@
+using Microsoft.EntityFrameworkCore;
 using OverLoad.Domain.Entities;
 using OverLoad.Domain.Enums;
+using OverLoad.Repositories.Data;
 using OverLoad.Repositories.Interfaces;
 using OverLoad.Services.Common;
 using OverLoad.Services.DTOs.Request;
 using OverLoad.Services.DTOs.Response;
 using OverLoad.Services.Interfaces;
-using BCrypt.Net;
+
 namespace OverLoad.Services.Implementations;
 
 public class UserService : IUserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly AppDbContext _context;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, AppDbContext context)
     {
         _userRepository = userRepository;
+        _context = context;
     }
 
     public async Task<ApiResponse<UserDetailResponse>> GetByIdAsync(int id)
@@ -23,7 +27,15 @@ public class UserService : IUserService
         if (user == null)
             return ApiResponse<UserDetailResponse>.FailResult("User not found.");
 
-        return ApiResponse<UserDetailResponse>.SuccessResult(MapToDetailResponse(user));
+        var totalDeposited = await _context.Transactions
+            .Where(t => t.UserId == id && t.Status == "SUCCESS" && t.Amount > 0)
+            .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+
+        var balance = await _context.Transactions
+            .Where(t => t.UserId == id && t.Status == "SUCCESS" && (t.CourseId == 6 || (t.Course != null && t.Course.Slug == "system-deposit-balance") || t.Amount < 0))
+            .SumAsync(t => (decimal?)t.Amount) ?? 0m;
+
+        return ApiResponse<UserDetailResponse>.SuccessResult(MapToDetailResponse(user, totalDeposited, balance));
     }
 
     public async Task<PagedResponse<UserResponse>> GetAllAsync(UserQueryParams query)
@@ -34,8 +46,30 @@ public class UserService : IUserService
         var (items, total) = await _userRepository.SearchAsync(
             query.Search, query.Role, query.Page, query.PageSize, query.SortBy, query.SortDesc);
 
-        return PagedResponse<UserResponse>.SuccessResult(
-            items.Select(MapToResponse), total, query.Page, query.PageSize);
+        var userIds = items.Select(u => u.Id).ToList();
+
+        var successTransactions = await _context.Transactions
+            .Include(t => t.Course)
+            .Where(t => userIds.Contains(t.UserId) && t.Status == "SUCCESS")
+            .ToListAsync();
+
+        var totalDepositedMap = successTransactions
+            .Where(t => t.Amount > 0)
+            .GroupBy(t => t.UserId)
+            .ToDictionary(g => g.Key, g => g.Sum(t => t.Amount));
+
+        var balanceMap = successTransactions
+            .Where(t => t.CourseId == 6 || (t.Course != null && t.Course.Slug == "system-deposit-balance") || t.Amount < 0)
+            .GroupBy(t => t.UserId)
+            .ToDictionary(g => g.Key, g => g.Sum(t => t.Amount));
+
+        var responses = items.Select(u => MapToResponse(
+            u,
+            totalDepositedMap.GetValueOrDefault(u.Id, 0m),
+            balanceMap.GetValueOrDefault(u.Id, 0m)
+        ));
+
+        return PagedResponse<UserResponse>.SuccessResult(responses, total, query.Page, query.PageSize);
     }
 
     public async Task<ApiResponse<UserResponse>> CreateAsync(CreateUserRequest request)
@@ -91,7 +125,7 @@ public class UserService : IUserService
 
     // ── Mapping helpers ──────────────────────────────────────────────────────
 
-    private static UserResponse MapToResponse(User user) => new()
+    private static UserResponse MapToResponse(User user, decimal totalDeposited = 0m, decimal balance = 0m) => new()
     {
         Id = user.Id,
         Email = user.Email,
@@ -103,11 +137,13 @@ public class UserService : IUserService
         StudentVerificationStatus = user.StudentVerificationStatus ?? "NONE",
         StudentCardPath = user.StudentCardPath,
         HasSeenStudentRejection = user.HasSeenStudentRejection,
+        TotalDeposited = totalDeposited,
+        Balance = balance,
         CreatedAt = user.CreatedAt,
         UpdatedAt = user.UpdatedAt
     };
 
-    private static UserDetailResponse MapToDetailResponse(User user) => new()
+    private static UserDetailResponse MapToDetailResponse(User user, decimal totalDeposited = 0m, decimal balance = 0m) => new()
     {
         Id = user.Id,
         Email = user.Email,
@@ -119,6 +155,8 @@ public class UserService : IUserService
         StudentVerificationStatus = user.StudentVerificationStatus ?? "NONE",
         StudentCardPath = user.StudentCardPath,
         HasSeenStudentRejection = user.HasSeenStudentRejection,
+        TotalDeposited = totalDeposited,
+        Balance = balance,
         CreatedAt = user.CreatedAt,
         UpdatedAt = user.UpdatedAt,
         Enrollments = user.Enrollments.Select(e => new EnrollmentSummaryResponse

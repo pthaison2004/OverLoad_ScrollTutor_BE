@@ -113,16 +113,13 @@ public class CourseService : ICourseService
         return ApiResponse<bool>.SuccessResult(true, "Course deleted successfully.");
     }
     public async Task<PagedResponse<CourseResponse>> GetByCategoryAsync(
-    string category, int page = 1, int pageSize = 10)
+        string category, bool? isPublished = true, int page = 1, int pageSize = 10)
     {
-        page = Math.Max(1, page);
-        pageSize = Math.Clamp(pageSize, 1, 100);
-
         var (items, total) = await _courseRepository.SearchAsync(
             searchTerm: null,
-            category: category,   // <-- truyền category vào đây
+            category: category,
             level: null,
-            isPublished: true,    // thường chỉ trả published
+            isPublished: isPublished,
             page, pageSize,
             sortBy: "createdAt",
             sortDesc: true);

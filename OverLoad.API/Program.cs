@@ -174,7 +174,7 @@ app.MapControllers();
 // ── Health check endpoint (keep server awake / uptime monitoring) ────────────
 app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
 
-// ── Auto-migrate in background (non-blocking startup) ────────────────────────
+// ── Auto-migrate & seed data in background (non-blocking startup) ─────────────
 _ = Task.Run(async () =>
 {
     try
@@ -182,11 +182,26 @@ _ = Task.Run(async () =>
         using var scope = app.Services.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
         await db.Database.MigrateAsync();
+
+        // Seed courses & lessons if database is empty
+        await DataSeeder.SeedAsync(db);
+
+        // Sync all user subscription enrollments from past transactions
+        var subService = scope.ServiceProvider.GetRequiredService<ISubscriptionService>();
+        var userIdsWithTransactions = await db.Transactions
+            .Where(t => t.Status == "SUCCESS")
+            .Select(t => t.UserId)
+            .Distinct()
+            .ToListAsync();
+        foreach (var uid in userIdsWithTransactions)
+        {
+            await subService.SyncUserSubscriptionsAsync(uid);
+        }
     }
     catch (Exception ex)
     {
         var logger = app.Services.GetRequiredService<ILogger<Program>>();
-        logger.LogWarning(ex, "Background migration failed — database may already be up to date.");
+        logger.LogWarning(ex, "Background migration/seeding failed — database may already be up to date.");
     }
 });
 

@@ -12,6 +12,8 @@ public class UserResponse
     public string StudentVerificationStatus { get; set; } = "NONE";
     public string? StudentCardPath { get; set; }
     public bool HasSeenStudentRejection { get; set; }
+    public decimal TotalDeposited { get; set; }
+    public decimal Balance { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

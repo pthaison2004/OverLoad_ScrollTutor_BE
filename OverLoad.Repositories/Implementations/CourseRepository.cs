@@ -37,7 +37,7 @@ public class CourseRepository : BaseRepository<Course>, ICourseRepository
                 (c.Description != null && c.Description.Contains(searchTerm)));
 
         if (!string.IsNullOrWhiteSpace(category))
-            query = query.Where(c => c.Category == category);
+            query = query.Where(c => c.Category != null && c.Category.ToLower() == category.ToLower());
 
         if (!string.IsNullOrWhiteSpace(level))
             query = query.Where(c => c.Level.ToString() == level);

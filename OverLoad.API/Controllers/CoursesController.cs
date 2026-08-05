@@ -116,10 +116,11 @@ public class CoursesController : ControllerBase
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> GetByCategory(
         string category,
+        [FromQuery] bool? isPublished = true,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 10)
     {
-        var result = await _courseService.GetByCategoryAsync(category, page, pageSize);
+        var result = await _courseService.GetByCategoryAsync(category, isPublished, page, pageSize);
         return Ok(result);
     }
     [HttpGet("{courseId:int}/progress")]

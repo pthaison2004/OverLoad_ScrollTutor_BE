@@ -34,7 +34,7 @@ public class AppDbContext : DbContext
         {
             if (entry.Entity is OverLoad.Domain.Common.BaseEntity baseEntity)
             {
-                if (entry.State == EntityState.Added)
+                if (entry.State == EntityState.Added && baseEntity.CreatedAt == default)
                     baseEntity.CreatedAt = DateTime.UtcNow;
                 if (entry.State == EntityState.Modified)
                     baseEntity.UpdatedAt = DateTime.UtcNow;
